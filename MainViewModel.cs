@@ -1,0 +1,243 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows.Input;
+using System.Xml.Linq;
+using System.Xml.Xsl;
+
+namespace MauiApp3
+{
+    public class MainViewModel : INotifyPropertyChanged
+    {
+        private string _xmlPath;
+        private string _xslPath;
+        private string _xslFileName = "Файл стилів не обрано";
+
+        public string XslFileName
+        {
+            get => _xslFileName;
+            set { _xslFileName = value; OnPropertyChanged(); }
+        }
+
+        private IXmlSearchStrategy _searchStrategy;
+
+        // Дані для фільтрів (витягуються з файлу)
+        public ObservableCollection<string> AllFaculties { get; set; } = new ObservableCollection<string>();
+        public ObservableCollection<string> AllCourses { get; set; } = new ObservableCollection<string>();
+
+        // Обрані фільтри
+        private string _selectedFaculty;
+        public string SelectedFaculty
+        {
+            get => _selectedFaculty;
+            set { _selectedFaculty = value; OnPropertyChanged(); }
+        }
+
+        private string _selectedCourse;
+        public string SelectedCourse
+        {
+            get => _selectedCourse;
+            set { _selectedCourse = value; OnPropertyChanged(); }
+        }
+
+        // Результати
+        public ObservableCollection<Student> SearchResults { get; set; } = new ObservableCollection<Student>();
+
+        // Вибір стратегії
+        public List<string> StrategyNames { get; } = new List<string> { "DOM", "SAX", "LINQ" };
+
+        private string _selectedStrategyName = "LINQ";
+        public string SelectedStrategyName
+        {
+            get => _selectedStrategyName;
+            set { _selectedStrategyName = value; OnPropertyChanged(); }
+        }
+
+        // Команди
+        public ICommand LoadXslCommand { get; }
+        public ICommand LoadDataCommand { get; }
+        public ICommand SearchCommand { get; }
+        public ICommand ClearCommand { get; }
+        public ICommand TransformCommand { get; }
+        public ICommand ExitCommand { get; }
+
+        public MainViewModel()
+        {
+            // Ініціалізація команд (прибрав дублікати, які були в минулому коді)
+            LoadDataCommand = new Command(async () => await LoadData());
+            LoadXslCommand = new Command(async () => await LoadXsl());
+            SearchCommand = new Command(PerformSearch);
+            ClearCommand = new Command(ClearForm);
+            TransformCommand = new Command(PerformTransformation);
+            ExitCommand = new Command(async () => await ExitApp());
+        }
+
+        private async Task LoadData()
+        {
+            try
+            {
+                var result = await FilePicker.Default.PickAsync();
+                if (result != null)
+                {
+                    _xmlPath = result.FullPath;
+                    // Автоматично шукаємо XSL поруч або чекаємо вибору користувача
+                    _xslPath = _xmlPath.Replace(".xml", ".xsl");
+
+                    ParseFileAttributesForFilters();
+                    await Application.Current.MainPage.DisplayAlert("Успіх", "Файл завантажено", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Помилка", ex.Message, "OK");
+            }
+        }
+
+        // Динамічне заповнення фільтрів
+        private void ParseFileAttributesForFilters()
+        {
+            if (string.IsNullOrEmpty(_xmlPath)) return;
+
+            AllFaculties.Clear();
+            AllCourses.Clear();
+
+            // Завантаження XML
+            var doc = XDocument.Load(_xmlPath);
+
+            // Вибірка унікальних факультетів та курсів
+            var faculties = doc.Descendants("Student")
+                               .Select(x => (string)x.Attribute("Faculty"))
+                               .Distinct()
+                               .Where(x => x != null);
+
+            var courses = doc.Descendants("Student")
+                             .Select(x => (string)x.Attribute("Course"))
+                             .Distinct()
+                             .Where(x => x != null);
+
+            foreach (var f in faculties) AllFaculties.Add(f);
+            foreach (var c in courses) AllCourses.Add(c);
+        }
+
+        private void PerformSearch()
+        {
+            if (string.IsNullOrEmpty(_xmlPath)) return;
+
+            // Вибір стратегії
+            switch (SelectedStrategyName)
+            {
+                case "DOM": _searchStrategy = new DomSearchStrategy(); break;
+                case "SAX": _searchStrategy = new SaxSearchStrategy(); break;
+                case "LINQ": _searchStrategy = new LinqSearchStrategy(); break;
+                default: _searchStrategy = new LinqSearchStrategy(); break;
+            }
+
+            // Створення критеріїв пошуку (БЕЗ Keyword)
+            var criteria = new SearchCriteria
+            {
+                Faculty = SelectedFaculty,
+                Course = SelectedCourse
+            };
+
+            var results = _searchStrategy.Search(_xmlPath, criteria);
+
+            SearchResults.Clear();
+            foreach (var s in results)
+            {
+                SearchResults.Add(s);
+            }
+        }
+
+        private void ClearForm()
+        {
+            SelectedFaculty = null;
+            SelectedCourse = null;
+            SearchResults.Clear();
+        }
+
+        private async Task LoadXsl()
+        {
+            try
+            {
+                var customFileType = new FilePickerFileType(
+                    new Dictionary<DevicePlatform, IEnumerable<string>>
+                    {
+                        { DevicePlatform.iOS, new[] { "public.xml" } },
+                        { DevicePlatform.Android, new[] { "application/xml", "text/xml" } },
+                        { DevicePlatform.WinUI, new[] { ".xsl", ".xslt" } },
+                        { DevicePlatform.macOS, new[] { "public.xml" } },
+                    });
+
+                var options = new PickOptions
+                {
+                    PickerTitle = "Оберіть файл стилів (XSL)",
+                    FileTypes = customFileType,
+                };
+
+                var result = await FilePicker.Default.PickAsync(options);
+                if (result != null)
+                {
+                    _xslPath = result.FullPath;
+                    XslFileName = result.FileName;
+                }
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Помилка", ex.Message, "OK");
+            }
+        }
+
+        private async void PerformTransformation()
+        {
+            if (string.IsNullOrEmpty(_xmlPath))
+            {
+                await Application.Current.MainPage.DisplayAlert("Увага", "Спочатку завантажте XML файл!", "OK");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(_xslPath))
+            {
+                await Application.Current.MainPage.DisplayAlert("Увага", "Спочатку завантажте XSL файл!", "OK");
+                return;
+            }
+
+            try
+            {
+                XslCompiledTransform xslt = new XslCompiledTransform();
+                xslt.Load(_xslPath);
+
+                string htmlPath = _xmlPath.Replace(".xml", ".html");
+                if (htmlPath == _xmlPath) htmlPath += ".html";
+
+                xslt.Transform(_xmlPath, htmlPath);
+
+                await Application.Current.MainPage.DisplayAlert("HTML створено", $"Збережено як: {htmlPath}", "OK");
+                await Launcher.Default.OpenAsync(new OpenFileRequest("Результат", new ReadOnlyFile(htmlPath)));
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Помилка трансформації", ex.Message, "OK");
+            }
+        }
+
+        private async Task ExitApp()
+        {
+            bool answer = await Application.Current.MainPage.DisplayAlert("Вихід", "Чи дійсно ви хочете завершити роботу з програмою?", "Так", "Ні");
+            if (answer)
+            {
+                Application.Current.Quit();
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string name = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+    }
+}

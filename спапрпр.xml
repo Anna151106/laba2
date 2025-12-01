@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<University>
+	<Student Name="Олег Бондар" Faculty="ФКНК" Course="2" Group="К-24">
+		<Subject Name="ООП" Grade="100"/>
+		<Subject Name="Додаткові розділи мовою С++" Grade="75"/>
+	</Student>
+	<Student Name="Валерія Високос" Faculty="ФКНК" Course="2" Group="К-27">
+		<Subject Name="Теорія ймовірності" Grade="95"/>
+		<Subject Name="Англійська мова" Grade="98"/>
+	</Student>
+	<Student Name="Анастасія Левченко" Faculty="ФКНК" Course="2" Group="К-23" Dormitory="Yes">
+		<Subject Name="Дослідження операцій" Grade="75"/>
+		<Subject Name="Математичний аналіз та елементи функціонального аналізу" Grade="82"/>
+	</Student>
+	<Student Name="Софія Захарова" Faculty="ФІТ" Course="1" Group="К-14">
+		<Subject Name="Алгебра та геометрія" Grade="95"/>
+		<Subject Name="Англійська мова" Grade="98"/>
+	</Student>
+	<Student Name="Ільків Іван" Faculty="ФІТ" Course="3" Group="К-34">
+		<Subject Name="Функціональний аналіз" Grade="100"/>
+		<Subject Name="Дослідження операцій" Grade="99"/>
+	</Student>
+</University>

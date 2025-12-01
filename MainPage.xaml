@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiApp3.MainPage">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+
+            <Label Text="Аналізатор XML (Варіант 6)" FontSize="24" HorizontalOptions="Center" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button Grid.Column="0" 
+                        Text="XML файл" 
+                        Command="{Binding LoadDataCommand}" 
+                        BackgroundColor="#000000"/>
+
+                <Button Grid.Column="1" 
+                        Text="XSL файл" 
+                        Command="{Binding LoadXslCommand}" 
+                        BackgroundColor="#512BD4"/>
+            </Grid>
+
+            <Label Text="{Binding XslFileName, StringFormat='Обраний стиль: {0}'}" 
+                   FontSize="12" 
+                   TextColor="Gray" 
+                   HorizontalOptions="Center"/>
+
+            <Frame BorderColor="Gray" Padding="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Параметри пошуку:" FontAttributes="Bold" />
+
+                    <Picker Title="Оберіть факультет" 
+                            ItemsSource="{Binding AllFaculties}" 
+                            SelectedItem="{Binding SelectedFaculty}" />
+
+                    <Picker Title="Оберіть курс" 
+                            ItemsSource="{Binding AllCourses}" 
+                            SelectedItem="{Binding SelectedCourse}" />
+
+                    <Label Text="Метод аналізу:" />
+                    <Picker ItemsSource="{Binding StrategyNames}" 
+                            SelectedItem="{Binding SelectedStrategyName}" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="5">
+                <Button Grid.Column="0" Text="Пошук" Command="{Binding SearchCommand}" BackgroundColor="#512BD4"/>
+                <Button Grid.Column="1" Text="HTML" Command="{Binding TransformCommand}" BackgroundColor="#2B51D4"/>
+                <Button Grid.Column="2" Text="Clear" Command="{Binding ClearCommand}" BackgroundColor="#D42B2B"/>
+            </Grid>
+
+            <Label Text="Результати:" FontAttributes="Bold" Margin="0,10,0,0"/>
+
+            <CollectionView ItemsSource="{Binding SearchResults}" HeightRequest="300">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Margin="0,5" Padding="10" BackgroundColor="Black">
+                            <VerticalStackLayout>
+                                <Label Text="{Binding Name, StringFormat='Ім\'я: {0}'}" FontAttributes="Bold"/>
+                                <Label Text="{Binding Faculty, StringFormat='Факультет: {0}'}"/>
+                                <Label Text="{Binding ResultDetails}" TextColor="Blue"/>
+                            </VerticalStackLayout>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Button Text="Вихід" Command="{Binding ExitCommand}" Margin="0,20,0,0" BackgroundColor="Black"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
