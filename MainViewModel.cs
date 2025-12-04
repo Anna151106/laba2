@@ -28,11 +28,11 @@ namespace MauiApp3
 
         private IXmlSearchStrategy _searchStrategy;
 
-        // Дані для фільтрів (витягуються з файлу)
+       
         public ObservableCollection<string> AllFaculties { get; set; } = new ObservableCollection<string>();
         public ObservableCollection<string> AllCourses { get; set; } = new ObservableCollection<string>();
 
-        // Обрані фільтри
+        
         private string _selectedFaculty;
         public string SelectedFaculty
         {
@@ -47,10 +47,10 @@ namespace MauiApp3
             set { _selectedCourse = value; OnPropertyChanged(); }
         }
 
-        // Результати
+        
         public ObservableCollection<Student> SearchResults { get; set; } = new ObservableCollection<Student>();
 
-        // Вибір стратегії
+        
         public List<string> StrategyNames { get; } = new List<string> { "DOM", "SAX", "LINQ" };
 
         private string _selectedStrategyName = "LINQ";
@@ -60,7 +60,7 @@ namespace MauiApp3
             set { _selectedStrategyName = value; OnPropertyChanged(); }
         }
 
-        // Команди
+       
         public ICommand LoadXslCommand { get; }
         public ICommand LoadDataCommand { get; }
         public ICommand SearchCommand { get; }
@@ -70,7 +70,7 @@ namespace MauiApp3
 
         public MainViewModel()
         {
-            // Ініціалізація команд (прибрав дублікати, які були в минулому коді)
+         
             LoadDataCommand = new Command(async () => await LoadData());
             LoadXslCommand = new Command(async () => await LoadXsl());
             SearchCommand = new Command(PerformSearch);
@@ -87,7 +87,7 @@ namespace MauiApp3
                 if (result != null)
                 {
                     _xmlPath = result.FullPath;
-                    // Автоматично шукаємо XSL поруч або чекаємо вибору користувача
+                   
                     _xslPath = _xmlPath.Replace(".xml", ".xsl");
 
                     ParseFileAttributesForFilters();
@@ -100,7 +100,7 @@ namespace MauiApp3
             }
         }
 
-        // Динамічне заповнення фільтрів
+       
         private void ParseFileAttributesForFilters()
         {
             if (string.IsNullOrEmpty(_xmlPath)) return;
@@ -108,10 +108,10 @@ namespace MauiApp3
             AllFaculties.Clear();
             AllCourses.Clear();
 
-            // Завантаження XML
+          
             var doc = XDocument.Load(_xmlPath);
 
-            // Вибірка унікальних факультетів та курсів
+           
             var faculties = doc.Descendants("Student")
                                .Select(x => (string)x.Attribute("Faculty"))
                                .Distinct()
@@ -130,7 +130,7 @@ namespace MauiApp3
         {
             if (string.IsNullOrEmpty(_xmlPath)) return;
 
-            // Вибір стратегії
+         
             switch (SelectedStrategyName)
             {
                 case "DOM": _searchStrategy = new DomSearchStrategy(); break;
@@ -139,7 +139,7 @@ namespace MauiApp3
                 default: _searchStrategy = new LinqSearchStrategy(); break;
             }
 
-            // Створення критеріїв пошуку (БЕЗ Keyword)
+            
             var criteria = new SearchCriteria
             {
                 Faculty = SelectedFaculty,
@@ -216,7 +216,7 @@ namespace MauiApp3
 
             try
             {
-                // 1. Створення тимчасового XML із результатів пошуку
+                
                 var filteredXml = CreateXmlFromSearchResults();
 
                 XslCompiledTransform xslt = new XslCompiledTransform();
@@ -224,10 +224,9 @@ namespace MauiApp3
 
                 string htmlPath = Path.Combine(Path.GetTempPath(), $"report_{DateTime.Now.Ticks}.html");
 
-                // 2. Застосування XSLT до створеного XDocument (в пам'яті)
                 using (var writer = XmlWriter.Create(htmlPath, xslt.OutputSettings))
                 {
-                    // Використовуємо метод Transform, який приймає джерело у вигляді IXPathNavigable
+                 
                     xslt.Transform(filteredXml.CreateNavigator(), writer);
                 }
 
@@ -239,10 +238,7 @@ namespace MauiApp3
                 await Application.Current.MainPage.DisplayAlert("Помилка трансформації", ex.Message, "OK");
             }
         }
-        /// <summary>
-        /// Створює XDocument (XML-документ) на основі поточних результатів пошуку.
-        /// </summary>
-        /// <returns>XDocument з відфільтрованими даними.</returns>
+      
         private XDocument CreateXmlFromSearchResults()
         {
             var root = new XElement("University");
@@ -255,13 +251,12 @@ namespace MauiApp3
                     new XAttribute("Course", student.Course ?? string.Empty)
                 );
 
-                // Розбираємо рядок ResultDetails, щоб відновити елементи Subject
-                // Приклад ResultDetails: "Математика: 4, Програмування: 5"
+                
                 var subjectDetails = student.ResultDetails?.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
 
                 foreach (var detail in subjectDetails)
                 {
-                    // detail: "Математика: 4"
+                 
                     var parts = detail.Split(new[] { ": " }, StringSplitOptions.None);
                     if (parts.Length == 2)
                     {
