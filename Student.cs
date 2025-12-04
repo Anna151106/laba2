@@ -11,7 +11,7 @@ namespace MauiApp3
         public string Name { get; set; }
         public string Faculty { get; set; }
         public string Course { get; set; }
-        public string ResultDetails { get; set; } // Для виводу знайдених предметів/оцінок
+        public string ResultDetails { get; set; } 
 
         public override string ToString()
         {
