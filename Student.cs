@@ -19,7 +19,6 @@ namespace MauiApp3
         }
     }
 
-    // Клас для параметрів пошуку
     public class SearchCriteria
     {
         public string Faculty { get; set; }
