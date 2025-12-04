@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Xml;
 using System.Xml.Linq;
+using System.Xml.XPath;
 using System.Xml.Xsl;
 
 namespace MauiApp3
@@ -206,17 +208,30 @@ namespace MauiApp3
                 return;
             }
 
+            if (!SearchResults.Any())
+            {
+                await Application.Current.MainPage.DisplayAlert("Увага", "Спочатку виконайте пошук, щоб отримати дані для трансформації!", "OK");
+                return;
+            }
+
             try
             {
+                // 1. Створення тимчасового XML із результатів пошуку
+                var filteredXml = CreateXmlFromSearchResults();
+
                 XslCompiledTransform xslt = new XslCompiledTransform();
                 xslt.Load(_xslPath);
 
-                string htmlPath = _xmlPath.Replace(".xml", ".html");
-                if (htmlPath == _xmlPath) htmlPath += ".html";
+                string htmlPath = Path.Combine(Path.GetTempPath(), $"report_{DateTime.Now.Ticks}.html");
 
-                xslt.Transform(_xmlPath, htmlPath);
+                // 2. Застосування XSLT до створеного XDocument (в пам'яті)
+                using (var writer = XmlWriter.Create(htmlPath, xslt.OutputSettings))
+                {
+                    // Використовуємо метод Transform, який приймає джерело у вигляді IXPathNavigable
+                    xslt.Transform(filteredXml.CreateNavigator(), writer);
+                }
 
-                await Application.Current.MainPage.DisplayAlert("HTML створено", $"Збережено як: {htmlPath}", "OK");
+                await Application.Current.MainPage.DisplayAlert("HTML створено", $"Звіт збережено у тимчасовому файлі. Відкриваю...", "OK");
                 await Launcher.Default.OpenAsync(new OpenFileRequest("Результат", new ReadOnlyFile(htmlPath)));
             }
             catch (Exception ex)
@@ -224,7 +239,47 @@ namespace MauiApp3
                 await Application.Current.MainPage.DisplayAlert("Помилка трансформації", ex.Message, "OK");
             }
         }
+        /// <summary>
+        /// Створює XDocument (XML-документ) на основі поточних результатів пошуку.
+        /// </summary>
+        /// <returns>XDocument з відфільтрованими даними.</returns>
+        private XDocument CreateXmlFromSearchResults()
+        {
+            var root = new XElement("University");
 
+            foreach (var student in SearchResults)
+            {
+                var studentElement = new XElement("Student",
+                    new XAttribute("Name", student.Name ?? string.Empty),
+                    new XAttribute("Faculty", student.Faculty ?? string.Empty),
+                    new XAttribute("Course", student.Course ?? string.Empty)
+                );
+
+                // Розбираємо рядок ResultDetails, щоб відновити елементи Subject
+                // Приклад ResultDetails: "Математика: 4, Програмування: 5"
+                var subjectDetails = student.ResultDetails?.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+
+                foreach (var detail in subjectDetails)
+                {
+                    // detail: "Математика: 4"
+                    var parts = detail.Split(new[] { ": " }, StringSplitOptions.None);
+                    if (parts.Length == 2)
+                    {
+                        var subjectName = parts[0].Trim();
+                        var grade = parts[1].Trim();
+
+                        studentElement.Add(new XElement("Subject",
+                            new XAttribute("Name", subjectName),
+                            new XAttribute("Grade", grade)
+                        ));
+                    }
+                }
+
+                root.Add(studentElement);
+            }
+
+            return new XDocument(root);
+        }
         private async Task ExitApp()
         {
             bool answer = await Application.Current.MainPage.DisplayAlert("Вихід", "Чи дійсно ви хочете завершити роботу з програмою?", "Так", "Ні");
