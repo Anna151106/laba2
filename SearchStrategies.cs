@@ -42,7 +42,7 @@ namespace MauiApp3
         }
     }
 
-    // 2. DOM API (XmlDocument) Strategy
+
     public class DomSearchStrategy : IXmlSearchStrategy
     {
         public List<Student> Search(string filePath, SearchCriteria criteria)
@@ -56,7 +56,7 @@ namespace MauiApp3
                 string faculty = node.Attributes["Faculty"]?.Value;
                 string course = node.Attributes["Course"]?.Value;
 
-                // Перевірка критеріїв студента
+                
                 bool matchFaculty = string.IsNullOrEmpty(criteria.Faculty) || faculty == criteria.Faculty;
                 bool matchCourse = string.IsNullOrEmpty(criteria.Course) || course == criteria.Course;
 
@@ -88,7 +88,7 @@ namespace MauiApp3
         }
     }
 
-    // 3. SAX API (XmlReader) Strategy
+   
     public class SaxSearchStrategy : IXmlSearchStrategy
     {
         public List<Student> Search(string filePath, SearchCriteria criteria)
@@ -117,7 +117,7 @@ namespace MauiApp3
                         }
                         else
                         {
-                            currentStudent = null; // Пропускаємо цього студента
+                            currentStudent = null; 
                         }
                     }
                     else if (reader.NodeType == XmlNodeType.Element && reader.Name == "Subject" && currentStudent != null)
